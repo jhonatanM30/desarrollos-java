@@ -35,7 +35,7 @@ public class ParametrizacionRegionalService {
     @Transactional
     public ParametrizacionResponseDto procesarParametrizacionRegional(
             ParametrizacionRegionalRequestDto request) {
-        log.info("Iniciando procesamiento de {} servicios regionales", request.getParametros().size());
+        log.info("Procesando solicitud de {} servicios regionales", request.getParametros().size());
                 
         List<ParametrizacionResponseDto.ErrorDto> errores = new ArrayList<>();
         List<String> sqlStatements = new ArrayList<>();
@@ -43,13 +43,14 @@ public class ParametrizacionRegionalService {
         int fallidos = 0;
         
         for (MwServiciosRegionalesDto dto : request.getParametros()) {
-            String paramKey = dto.getIdServicio() + ", " + dto.getOrigen() + ", " + dto.getDestino() + ", " + dto.getOperacion() + ", " + dto.getVersion();
-            try {
+            String paramKey = String.format("Servicio: %s, Origen: %s, Destino: %s", 
+                dto.getIdServicio(), dto.getOrigen(), dto.getDestino());
                 
-                if(repository.existsByAllFields(dto.getIdServicio(), dto.getOrigen(), dto.getDestino(), dto.getOperacion(), dto.getVersion())){
-                    log.warn("El registro {}  existe en la base de datos", paramKey);
+            try {
+                if(repository.existsByAllFields(dto.getIdServicio(), dto.getOrigen(), 
+                        dto.getDestino(), dto.getOperacion(), dto.getVersion())){
+                    log.warn("Registro duplicado detectado - {}", paramKey);
                    
-                    // Crear mapa con valores del parámetro usando el servicio reutilizable
                     Map<String, String> valoresParametro = sqlStatementGeneratorService.createParameterMapRegional(
                             dto.getIdServicio(),
                             dto.getOrigen(),
@@ -64,17 +65,17 @@ public class ParametrizacionRegionalService {
                             .tipo("REGIONAL")
                             .parametro(paramKey)
                             .error("DUPLICADO")
-                            .detalle("El registro ya existe en la base de datos con los valores clave: " + paramKey)
+                            .detalle("El registro ya existe en la base de datos")
                             .valoresParametro(sqlStatementGeneratorService.convertToStringMap(valoresParametro))                            
                             .build());
                     fallidos++;
                     continue;
                 }
 
-                // Guardar entidad
                 MwServiciosRegionales entidad = mapper.toEntity(dto);
                 MwServiciosRegionales guardado = repository.save(entidad);
                 exitosos++;
+                
                 try {
                     Map<String, String> valoresParametro = sqlStatementGeneratorService.createParameterMapRegional(
                             guardado.getIdServicio(),
@@ -90,21 +91,21 @@ public class ParametrizacionRegionalService {
                             "PARAMETRIZACION_REGIONAL", valoresParametro);
                     sqlStatements.add(sqlStatement);
                     
-                    log.debug("SQL statement generado para servicio {}", guardado.getIdServicio());
+                    log.debug("Generado SQL para servicio: {}", guardado.getIdServicio());
                 } catch (Exception sqlException) {
-                    log.error("Error generando SQL statement para servicio {}: {}", guardado.getIdServicio(), sqlException.getMessage());
-                    // Nota: No se decrementa exitosos, la persistencia BD fue exitosa
+                    log.error("Error generando SQL para servicio {}: {}", 
+                            guardado.getIdServicio(), sqlException.getMessage());
                     errores.add(ParametrizacionResponseDto.ErrorDto.builder()
                             .tipo("SISTEMA")
                             .parametro(paramKey)
                             .error("ERROR_GENERACION_SQL")
-                            .detalle("Servicio guardado en BD exitosamente, pero falló generación de SQL: " + sqlException.getMessage())
+                            .detalle("Error generando sentencia SQL: " + sqlException.getMessage())
                             .build());
                 }
                                                                 
             } catch (Exception e) {
-                log.error("Error procesando servicio regional: {}", dto, e);                
-                // Crear mapa con valores del parámetro que falló usando el servicio reutilizable
+                log.error("Error procesando servicio regional - {}: {}", paramKey, e.getMessage());
+                
                 Map<String, String> valoresParametro = sqlStatementGeneratorService.createParameterMapRegional(
                         dto.getIdServicio(),
                         dto.getOrigen(),
@@ -116,18 +117,17 @@ public class ParametrizacionRegionalService {
                         dto.getUbicacion()
                 );
                 
-                // Generar INSERT que falló usando el servicio reutilizable
                 String insertFallido = null;
                 try {
                     insertFallido = sqlStatementGeneratorService.generateInsertStatement(
                             "PARAMETRIZACION_REGIONAL", valoresParametro);
                 } catch (Exception ex) {
-                    log.warn("No se pudo generar INSERT para servicio regional fallido {}", dto.getIdServicio());
+                    log.warn("No se pudo generar SQL para el servicio fallido: {}", paramKey);
                 }
                 
                 errores.add(ParametrizacionResponseDto.ErrorDto.builder()
                         .tipo("REGIONAL")
-                        .parametro(dto.getIdServicio())
+                        .parametro(paramKey)
                         .error("ERROR_PERSISTENCIA")
                         .detalle(e.getMessage())
                         .valoresParametro(sqlStatementGeneratorService.convertToStringMap(valoresParametro))
@@ -137,9 +137,17 @@ public class ParametrizacionRegionalService {
             }
         }
         
-         //  Usar método genérico para desacoplar lógica de construcción de respuesta
-         return sqlFileGeneratorService.generarRespuestaConArchivos(request.getCarpetaQA(), request.getCarpetaPRD(), sqlStatements, 
-         "INSERT_INTO", "PARAMETRIZACION_REGIONAL", errores, exitosos, fallidos, request.getParametros().size());
+        return sqlFileGeneratorService.generarRespuestaConArchivos(
+                request.getCarpetaQA(), 
+                request.getCarpetaPRD(), 
+                sqlStatements, 
+                "INSERT_INTO", 
+                "PARAMETRIZACION_REGIONAL", 
+                errores, 
+                exitosos, 
+                fallidos, 
+                request.getParametros().size()
+        );
     }
 
     @Transactional
@@ -334,4 +342,3 @@ public class ParametrizacionRegionalService {
     }
 
 }
-    

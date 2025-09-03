@@ -26,7 +26,7 @@ public class ParametrizacionMiddlewareService {
 
     @Transactional
     public ParametrizacionResponseDto procesarParametrizacionMiddleware(ParametrizacionMiddlewareRequestDto request) {
-        log.info("Iniciando procesamiento de parametrización middleware con {} parámetros", request.getParametros().size());
+        log.info("Procesando solicitud de parametrización middleware - Parámetros recibidos: {}", request.getParametros().size());
 
         List<ParametrizacionResponseDto.ErrorDto> errores = new ArrayList<>();
         List<String> sqlStatements = new ArrayList<>();
@@ -34,21 +34,20 @@ public class ParametrizacionMiddlewareService {
         int fallidos = 0;
 
         for (ParametrizacionMiddlewareDto parametroDto : request.getParametros()) {
+            String nombreParametro = parametroDto.getNombreParametro();
             try {
-                // Validar si ya existe el parámetro
-                if (repository.existsByNombreParametro(parametroDto.getNombreParametro())) {
-                    log.warn("El parámetro {} ya existe en la base de datos", parametroDto.getNombreParametro());
+                if (repository.existsByNombreParametro(nombreParametro)) {
+                    log.warn("Intento de duplicado detectado - Parámetro: {}", nombreParametro);
                     
-                    // Crear mapa con valores del parámetro usando el servicio reutilizable
                     Map<String, String> valoresParametro = sqlStatementGeneratorService.createParameterMap(
-                            parametroDto.getNombreParametro(),
+                            nombreParametro,
                             parametroDto.getValorParametro(),
                             parametroDto.getDescripcionParametro()
                     );
                                                             
                     errores.add(ParametrizacionResponseDto.ErrorDto.builder()
                             .tipo("MIDDLEWARE")
-                            .parametro(parametroDto.getNombreParametro())
+                            .parametro(nombreParametro)
                             .error("DUPLICADO")
                             .detalle("El parámetro ya existe en la base de datos")
                             .valoresParametro(sqlStatementGeneratorService.convertToStringMap(valoresParametro))                            
@@ -57,15 +56,10 @@ public class ParametrizacionMiddlewareService {
                     continue;
                 }
 
-                // Convertir DTO a entidad y guardar
                 ParametrizacionMiddleware entidad = mapper.toEntity(parametroDto);
                 ParametrizacionMiddleware guardado = repository.save(entidad);
-                
-                // ✅ EXITOSO: Persistencia BD completada
                 exitosos++;
-                log.info("Parámetro {} persistido exitosamente en BD", parametroDto.getNombreParametro());
-
-                // Intentar generar SQL statement (si falla, no afecta el conteo de exitosos)
+                
                 try {
                     Map<String, String> valoresParametro = sqlStatementGeneratorService.createParameterMap(
                             guardado.getNombreParametro(),
@@ -76,40 +70,37 @@ public class ParametrizacionMiddlewareService {
                             "PARAMETRIZACION_MIDDLEWARE", valoresParametro);
                     sqlStatements.add(sqlStatement);
                     
-                    log.debug("SQL statement generado para parámetro {}", guardado.getNombreParametro());
+                    log.debug("Generado SQL para parámetro: {}", guardado.getNombreParametro());
                 } catch (Exception sqlException) {
-                    log.error("Error generando SQL statement para parámetro {}: {}", guardado.getNombreParametro(), sqlException.getMessage());
-                    // Nota: No se decrementa exitosos, la persistencia BD fue exitosa
+                    log.error("Error generando SQL para parámetro {}: {}", guardado.getNombreParametro(), sqlException.getMessage());
                     errores.add(ParametrizacionResponseDto.ErrorDto.builder()
                             .tipo("SISTEMA")
-                            .parametro(guardado.getNombreParametro())
+                            .parametro(nombreParametro)
                             .error("ERROR_GENERACION_SQL")
-                            .detalle("Parámetro guardado en BD exitosamente, pero falló generación de SQL: " + sqlException.getMessage())
+                            .detalle("Error generando sentencia SQL: " + sqlException.getMessage())
                             .build());
                 }
 
             } catch (Exception e) {
-                log.error("Error procesando parámetro {}: {}", parametroDto.getNombreParametro(), e.getMessage(), e);
+                log.error("Error procesando parámetro {}: {}", nombreParametro, e.getMessage());
                 
-                // Crear mapa con valores del parámetro que falló usando el servicio reutilizable
                 Map<String, String> valoresParametro = sqlStatementGeneratorService.createParameterMap(
                         parametroDto.getNombreParametro(),
                         parametroDto.getValorParametro(),
                         parametroDto.getDescripcionParametro()
                 );
                 
-                // Generar INSERT que falló usando el servicio reutilizable
                 String insertFallido = null;
                 try {
                     insertFallido = sqlStatementGeneratorService.generateInsertStatement(
                             "PARAMETRIZACION_MIDDLEWARE", valoresParametro);
                 } catch (Exception ex) {
-                    log.warn("No se pudo generar INSERT para parámetro fallido {}", parametroDto.getNombreParametro());
+                    log.warn("No se pudo generar sentencia SQL para el parámetro fallido: {}", nombreParametro);
                 }
                 
                 errores.add(ParametrizacionResponseDto.ErrorDto.builder()
                         .tipo("MIDDLEWARE")
-                        .parametro(parametroDto.getNombreParametro())
+                        .parametro(nombreParametro)
                         .error("ERROR_PERSISTENCIA")
                         .detalle(e.getMessage())
                         .valoresParametro(sqlStatementGeneratorService.convertToStringMap(valoresParametro))
@@ -119,9 +110,17 @@ public class ParametrizacionMiddlewareService {
             }
         }
 
-        //  Usar método genérico para desacoplar lógica de construcción de respuesta
-        return sqlFileGeneratorService.generarRespuestaConArchivos(request.getCarpetaQA(), request.getCarpetaPRD(), sqlStatements, 
-                "INSERT_INTO", "PARAMETRIZACION_MIDDLEWARE", errores, exitosos, fallidos, request.getParametros().size());
+        return sqlFileGeneratorService.generarRespuestaConArchivos(
+                request.getCarpetaQA(), 
+                request.getCarpetaPRD(), 
+                sqlStatements, 
+                "INSERT_INTO", 
+                "PARAMETRIZACION_MIDDLEWARE", 
+                errores, 
+                exitosos, 
+                fallidos, 
+                request.getParametros().size()
+        );
     }
 
     @Transactional
