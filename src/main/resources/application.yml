@@ -1,0 +1,41 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api/v1
+
+spring:
+  application:
+    name: parametrizacion-middleware
+  datasource:
+    url: jdbc:oracle:thin:@172.23.177.185:1970:mdwdbdev
+    username: MIDDLEWARE
+    password: desarrollo
+    driver-class-name: oracle.jdbc.OracleDriver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.OracleDialect
+        format_sql: true
+  sql:
+    init:
+      mode: never
+
+logging:
+  level:
+    com.middleware: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/parametrizacion-middleware.log
+
+app:
+  sql-generation:
+    qa-prefix: MIDDLEWARE2
+    prd-prefix: MIDDLEWARE

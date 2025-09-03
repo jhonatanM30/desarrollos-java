@@ -1,0 +1,39 @@
+# Archivos de compilación
+/target/
+/bin/
+/build/
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Archivos de configuración local
+*.properties
+*.yml
+!application*.yml
+!bootstrap*.yml
+!application*.yaml
+!bootstrap*.yaml
+!application*.properties
+!bootstrap*.properties
+
+# Archivos de IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.settings/
+.project
+.classpath
+.springBeans
+
+# Archivos de log
+*.log
+logs/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
