@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -34,7 +35,7 @@ public class SqlFileGeneratorService {
             Files.createDirectories(qaDir);
             Files.createDirectories(prdDir);
 
-            // Generar nombres de archivos según nueva convención: <OPERACION>_<ENTORNO>_<NOMBRETABLA>.sql
+            // Generar nombres de archivos según convención
             String qaFileName = String.format("%s_MIDDLEWARE2_%s.sql", operacion, tableName);
             String prdFileName = String.format("%s_MIDDLEWARE_%s.sql", operacion, tableName);
 
@@ -51,11 +52,11 @@ public class SqlFileGeneratorService {
                     .map(sql -> addSchemaPrefix(sql, prdPrefix, operacion))
                     .toList();
 
-            // Escribir archivos
-            Files.write(qaFilePath, generateFileContent(qaStatements, "QA", operacion));
-            Files.write(prdFilePath, generateFileContent(prdStatements, "PRD", operacion));
+            // Escribir o anexar a archivos existentes
+            writeOrAppendToFile(qaFilePath, qaStatements, "QA", operacion);
+            writeOrAppendToFile(prdFilePath, prdStatements, "PRD", operacion);
 
-            log.info("Archivos SQL generados exitosamente: QA={}, PRD={}", qaFilePath, prdFilePath);
+            log.info("Archivos SQL procesados exitosamente: QA={}, PRD={}", qaFilePath, prdFilePath);
             
             return SqlFileResult.builder()
                     .archivoQa(qaFilePath.toString())
@@ -63,9 +64,60 @@ public class SqlFileGeneratorService {
                     .build();
 
         } catch (IOException e) {
-            log.error("Error generando archivos SQL", e);
+            log.error("Error generando archivos SQL: {}", e.getMessage(), e);
             throw new RuntimeException("Error al generar archivos SQL: " + e.getMessage(), e);
         }
+    }
+
+    private void writeOrAppendToFile(Path filePath, List<String> sqlStatements, String environment, String operacion) throws IOException {
+        boolean fileExists = Files.exists(filePath);
+        List<String> fileContent = generateFileContent(sqlStatements, environment, operacion);
+        
+        if (fileExists) {
+            log.info("Anexando a archivo existente: {}", filePath);
+            List<String> existingContent = Files.readAllLines(filePath);
+            
+            // Eliminar líneas finales (COMMIT y pie de archivo) si existen
+            while (!existingContent.isEmpty() && 
+                  (existingContent.get(existingContent.size() - 1).trim().equals("COMMIT;") || 
+                   existingContent.get(existingContent.size() - 1).trim().equals("-- Fin del archivo") ||
+                   existingContent.get(existingContent.size() - 1).trim().isEmpty())) {
+                existingContent.remove(existingContent.size() - 1);
+            }
+            
+            // Agregar nuevas sentencias SQL
+            existingContent.add("");
+            existingContent.addAll(sqlStatements);
+            existingContent.add("");
+            existingContent.add("COMMIT;");
+            existingContent.add("");
+            existingContent.add("-- Fin del archivo");
+            
+            Files.write(filePath, existingContent);
+        } else {
+            log.info("Creando nuevo archivo: {}", filePath);
+            Files.write(filePath, fileContent);
+        }
+    }
+
+    private List<String> generateFileContent(List<String> sqlStatements, String environment, String operacion) {
+        String operacionDesc = getOperacionDescription(operacion);
+        
+        List<String> content = new ArrayList<>();
+        content.add("-- Archivo SQL generado automáticamente para " + environment);
+        content.add("-- Fecha: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        content.add("-- Operación: " + operacionDesc);
+        content.add("-- Parametrización Middleware");
+        content.add("");
+        content.add("SET DEFINE OFF;");
+        content.add("");
+        content.addAll(sqlStatements);
+        content.add("");
+        content.add("COMMIT;");
+        content.add("");
+        content.add("-- Fin del archivo");
+        
+        return content;
     }
 
     // Método legacy para mantener compatibilidad
@@ -85,25 +137,6 @@ public class SqlFileGeneratorService {
             default:
                 return sql;
         }
-    }
-
-    private List<String> generateFileContent(List<String> sqlStatements, String environment, String operacion) {
-        String operacionDesc = getOperacionDescription(operacion);
-        
-        return List.of(
-                "-- Archivo SQL generado automáticamente para " + environment,
-                "-- Fecha: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")),
-                "-- Operación: " + operacionDesc,
-                "-- Parametrización Middleware",
-                "",
-                "SET DEFINE OFF;",
-                "",
-                String.join("\n", sqlStatements),
-                "",
-                "COMMIT;",
-                "",
-                "-- Fin del archivo"
-        );
     }
 
     private String getOperacionDescription(String operacion) {
