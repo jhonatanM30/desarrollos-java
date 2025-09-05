@@ -115,23 +115,31 @@ Esta API proporciona operaciones CRUD completas para la parametrización de midd
 
 ```json
 {
-  "carpetaQA": "C:/FICOHSA/SoportePRD/QA",
-  "carpetaPRD": "C:/FICOHSA/SoportePRD/PRD",
+  "carpetaQA": "/ruta/qa",
+  "carpetaPRD": "/ruta/prd",
   "parametros": [
     {
-      "idServicio": "SERV002",
+      "idServicio": "SERV001",
       "origen": "HN01",
-      "destino": "HN01",
+      "destino": "NI01",
       "operacion": "ConsultaCliente",
-      "version": "V3",
+      "version": "V1",
       "estado": "A",
-      "logActivado": "S",
-      "ubicacion": "/ruta/servicio"
+      "ubicacion": "/ruta/servicio",
+      "logActivado": "S"
+    },
+    {
+      "idServicio": "SERV002",
+      "origen": "SV01",
+      "destino": "GT01",
+      "operacion": "PagoServicio",
+      "version": "V2",
+      "estado": "I",
+      "ubicacion": "/ruta/otro-servicio",
+      "logActivado": "N"
     }
   ]
 }
-
-
 {
    "exitoso": true,
    "mensaje": "OperaciÃ³n completada exitosamente. 1 registros procesados.",
@@ -153,18 +161,18 @@ Esta API proporciona operaciones CRUD completas para la parametrización de midd
 
 ```json
 {
-  "carpetaQA": "C:/sql/qa",
-  "carpetaPRD": "C:/sql/prd",
+  "carpetaQA": "/ruta/qa",
+  "carpetaPRD": "/ruta/prd",
   "parametros": [
     {
-      "idServicio": "SRV001",
-      "origen": "HN",
-      "destino": "NI",
-      "estado": "I"
-    },
-    {
-      "idServicio": "SRV002",
-      "estado": "I"
+      "idServicio": "SERV001",
+      "origen": "HN01",
+      "destino": "NI01",
+      "operacion": "ConsultaCliente",
+      "version": "V2",
+      "nuevoEstado": "I",
+      "nuevaUbicacion": "/nueva/ruta/servicio",
+      "nuevoLogActivado": "N"
     }
   ]
 }
@@ -179,46 +187,18 @@ Esta API proporciona operaciones CRUD completas para la parametrización de midd
 
 ```json
 {
-  "carpetaQA": "C:/FICOHSA/SoportePRD/QA",
-  "carpetaPRD": "C:/FICOHSA/SoportePRD/PRD",
+  "carpetaQA": "/ruta/qa",
+  "carpetaPRD": "/ruta/prd",
   "parametros": [
-  {
+    {
       "idServicio": "SERV001",
       "origen": "HN01",
-      "destino": "HN01",
-      "operacion": "CONSULTA_SALDO",
-      "version": "V2",
-      "estado": "A",
-      "ubicacion": "/ruta/servicio",
-      "logActivado": "S"
-   },
-      {
-      "idServicio": "SERV001",
-      "origen": "HN01",
-      "destino": "HN01",
-      "operacion": "CONSULTA_SALDO",
-      "version": "V3",
-      "estado": "A",
-      "ubicacion": "/ruta/servicio",
-      "logActivado": "S"
-   },
-    {
-      "idServicio": "SERV002",
-      "origen": "HN01",
-      "destino": "HN01",
+      "destino": "NI01",
       "operacion": "ConsultaCliente",
-      "version": "V3"      
-    },
-    {
-      "idServicio": "SERV005",
-      "origen": "HN01",
-      "destino": "HN01",
-      "operacion": "ConsultaCliente",
-      "version": "V3"      
+      "version": "V1"
     }
   ]
-  
-  }
+}
   
   {
    "exitoso": false,
@@ -248,10 +228,7 @@ Esta API proporciona operaciones CRUD completas para la parametrización de midd
 
 ```json
 {
-  "criteriosBusqueda": [
-    "SRV001",
-    "SRV002"
-  ]
+  "criteriosBusqueda": ["SERV001", "SERV002"]
 }
 ```
 
