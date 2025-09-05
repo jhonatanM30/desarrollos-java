@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Service
@@ -63,15 +64,16 @@ public class SqlStatementGeneratorService {
 
     public Map<String, String> createParameterMap(String nombreParametro, String valorParametro, 
                                                  String descripcionParametro) {
-        return Map.of(
+
+        return new LinkedHashMap<>(Map.of(
                 "NOMBRE_PARAMETRO", nombreParametro,
                 "VALOR_PARAMETRO", valorParametro,
                 "DESCRIPCION_PARAMETRO", descripcionParametro
-        );
+        ));
     }
 
     public Map<String, String> createParameterMapRegional(String idServicio, String origen, String destino, String operacion, String version, String estado, String logActivado, String ubicacion) {
-        return Map.of(
+        return new LinkedHashMap<>(Map.of(
                 "ID_SERVICIO", idServicio,
                 "ORIGEN", origen,
                 "DESTINO", destino,
@@ -80,22 +82,13 @@ public class SqlStatementGeneratorService {
                 "ESTADO", estado,
                 "LOG_ACTIVADO", logActivado,
                 "UBICACION", ubicacion
-        );
+        ));
     }
 
     public Map<String, String> convertToStringMap(Map<String, String> originalMap) {
         return new HashMap<>(originalMap);
     }
-
-    public Map<String, String> createRegionalServiceMap(String idServicio, String origen, 
-                                                       String destino, String estado) {
-        return Map.of(
-                "ID_SERVICIO", idServicio,
-                "ORIGEN", origen,
-                "DESTINO", destino,
-                "ESTADO", estado
-        );
-    }
+ 
 
     private String escapeValue(String value) {
         return value != null ? value.replace("'", "''") : "";
