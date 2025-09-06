@@ -2,8 +2,6 @@ package com.middleware.parametrizacion.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -73,20 +71,20 @@ public class SqlStatementGeneratorService {
     }
 
     public Map<String, String> createParameterMapRegional(String idServicio, String origen, String destino, String operacion, String version, String estado, String logActivado, String ubicacion) {
-        return new LinkedHashMap<>(Map.of(
-                "ID_SERVICIO", idServicio,
-                "ORIGEN", origen,
-                "DESTINO", destino,
-                "OPERACION", operacion,
-                "VERSION", version,
-                "ESTADO", estado,
-                "LOG_ACTIVADO", logActivado,
-                "UBICACION", ubicacion
-        ));
+        Map<String, String> map = new LinkedHashMap<>();
+        map.put("ID_SERVICIO", idServicio);
+        map.put("ORIGEN", origen);
+        map.put("DESTINO", destino);
+        map.put("OPERACION", operacion);
+        map.put("VERSION", version);
+        map.put("ESTADO", estado);
+        map.put("LOG_ACTIVADO", logActivado);
+        map.put("UBICACION", ubicacion);
+        return map;
     }
 
     public Map<String, String> convertToStringMap(Map<String, String> originalMap) {
-        return new HashMap<>(originalMap);
+        return new LinkedHashMap<>(originalMap);
     }
  
 
