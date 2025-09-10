@@ -379,15 +379,4 @@ Esta API proporciona operaciones CRUD completas para la parametrización de midd
 
 # Documentación de la API de Parametrización de Servicios Regionales
 
-## Tabla de Contenidos
-- [Introducción](#introducción)
-- [Estructura de Datos](#estructura-de-datos)
-- [Endpoints](#endpoints)
-  - [Consultar Servicios Regionales](#consultar-servicios-regionales)
-  - [Crear Servicios Regionales](#crear-servicios-regionales)
-  - [Actualizar Servicios Regionales](#actualizar-servicios-regionales)
-  - [Eliminar Servicios Regionales](#eliminar-servicios-regionales)
-- [Manejo de Errores](#manejo-de-errores)
-- [Ejemplos de Uso](#ejemplos-de-uso)
-- [Escenarios de Prueba](#escenarios-de-prueba)
 
